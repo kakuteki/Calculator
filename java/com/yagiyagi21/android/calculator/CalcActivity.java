@@ -2,7 +2,6 @@ package com.yagiyagi21.android.calculator;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -10,8 +9,6 @@ import android.widget.TextView;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-
-import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class CalcActivity extends AppCompatActivity {
 
@@ -210,8 +207,8 @@ public class CalcActivity extends AppCompatActivity {
                     _opeList.remove(i);
                     i--;
                 }
-                else if(_opeList.get(i) == '-') {
-                    _opeList.set(i, '+');
+                else if(_opeList.get(i) == 'ー') {
+                    _opeList.set(i, '＋');
                     _numList.set(i+1, _numList.get(i+1).negate());
                 }
                 i++;

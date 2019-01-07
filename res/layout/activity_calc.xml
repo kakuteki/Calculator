@@ -171,7 +171,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="#e9e9e9"
-                android:text="-"
+                android:text="ー"
                 android:textColor="@color/colorPrimaryDark" />
         </TableRow>
 
@@ -215,7 +215,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="#e9e9e9"
-                android:text="+"
+                android:text="＋"
                 android:textColor="@color/colorPrimaryDark" />
         </TableRow>
 
