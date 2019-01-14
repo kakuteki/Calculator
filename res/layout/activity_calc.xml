@@ -6,6 +6,17 @@
     android:layout_height="match_parent"
     tools:context=".CalcActivity">
 
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rvMemo"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:scrollbars="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/tableLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <android.support.constraint.Guideline
         android:id="@+id/guideline"
         android:layout_width="wrap_content"
@@ -14,6 +25,7 @@
         app:layout_constraintGuide_percent="0.4" />
 
     <TableLayout
+        android:id="@+id/tableLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
@@ -28,16 +40,46 @@
             android:layout_height="match_parent"
             android:layout_weight="1">
 
+            <EditText
+                android:id="@+id/etMemo"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_span="4"
+                android:layout_weight="1"
+                android:padding="0dp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:inputType="text"
+                android:text="@string/memo"
+                android:maxLength="30"
+                android:selectAllOnFocus="true"/>
+
+            <Button
+                android:id="@+id/btMemo"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/colorAccent"
+                android:text="↑"
+                android:textColor="#ffffff" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
             <TextView
                 android:id="@+id/tvFormula"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_span="4"
                 android:layout_weight="1"
-                android:paddingEnd="8dp"
                 android:gravity="end"
+                android:paddingEnd="8dp"
                 android:text="@string/formula_text"
-                android:textSize="30sp" />
+                android:textSize="30sp"
+                android:textIsSelectable="true"/>
         </TableRow>
 
         <TableRow
@@ -231,6 +273,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
+
             <Button
                 android:id="@+id/btZero"
                 style="?android:attr/buttonBarButtonStyle"
@@ -255,9 +298,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:background="@color/colorPrimaryDark"
                 android:text="="
-                android:textColor="#ffffff"
-                android:background="@color/colorPrimaryDark"/>
+                android:textColor="#ffffff" />
         </TableRow>
     </TableLayout>
 
