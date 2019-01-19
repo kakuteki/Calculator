@@ -6,6 +6,7 @@ import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,9 +21,10 @@ import java.util.Map;
 public class CalcActivity extends AppCompatActivity {
 
     private static CalcActivity _instance = null;
-    
-    private List<Map<String, Object>> _memoList = new ArrayList<>();
-    private RecyclerView rvMemo;
+    private static DatabaseAdapter _dbAdapter;
+    private static RecyclerListAdapter _recyclerListAdapter;
+    private List<Map<String, String>> _memoList = new ArrayList<>();
+    private RecyclerView _rvMemo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,35 +39,40 @@ public class CalcActivity extends AppCompatActivity {
             button.setOnClickListener(listener);
         }
 
-        //RecyclerViewのデータを表示
-        rvMemo = findViewById(R.id.rvMemo);
+        // DBからすべてのメモを取得
+        _dbAdapter = new DatabaseAdapter(_instance);
+        _dbAdapter.open();
+        _memoList = _dbAdapter.getAllMemos();
+        _dbAdapter.close();
+
+        //RecyclerViewを生成
+        _rvMemo = findViewById(R.id.rvMemo);
         LinearLayoutManager layout = new LinearLayoutManager(_instance);
-        rvMemo.setLayoutManager(layout);
-
-        //TODO DBに値を保存できるようにする
-        Map<String, Object> testMemo = new HashMap<>();
-        testMemo.put("memo", "テストの値 \n 234");
-        _memoList.add(testMemo);
-        testMemo = new HashMap<>();
-        testMemo.put("memo", "テストの値その2 \n 14546");
-        _memoList.add(testMemo);
-
-        final RecyclerListAdapter adapter = new RecyclerListAdapter(_memoList);
-        rvMemo.setAdapter(adapter);
+        _recyclerListAdapter = new RecyclerListAdapter(_memoList);
         DividerItemDecoration decorator = new DividerItemDecoration(_instance, layout.getOrientation());
-        rvMemo.addItemDecoration(decorator);
+        _rvMemo.setLayoutManager(layout);
+        _rvMemo.setAdapter(_recyclerListAdapter);
+        _rvMemo.addItemDecoration(decorator);
 
-        //スワイプでリストの要素を削除
+        // スワイプでリストの要素を削除
         SwipeToDeleteCallback swipeHandler = new SwipeToDeleteCallback(0, (ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT)) {
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int swipedPosition = viewHolder.getAdapterPosition();
-                adapter.removeAt(swipedPosition);
-                rvMemo.setAdapter(adapter);
+                String memoId = _recyclerListAdapter.getMemoByPosition(swipedPosition).get("id");
+
+                // DBから削除
+                _dbAdapter.open();
+                _dbAdapter.deleteMemo(Integer.parseInt(memoId));
+                _dbAdapter.close();
+
+                // RecyclerViewから削除
+                _recyclerListAdapter.removeAt(swipedPosition);
+                _rvMemo.setAdapter(_recyclerListAdapter);
             }
         };
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(swipeHandler);
-        itemTouchHelper.attachToRecyclerView(rvMemo);
+        itemTouchHelper.attachToRecyclerView(_rvMemo);
     }
 
     public static CalcActivity getInstance() {
@@ -181,31 +188,32 @@ public class CalcActivity extends AppCompatActivity {
                 // 記号ボタンの場合
                 case R.id.btAdd:
                     inputChar = '+';
-                    if(!(_inputValue.equals(""))) {
+                    if(!(_inputValue.equals("")) || isLastOpeIsPercent()) {
                         addList(tvFormula, _inputValue, inputChar);
                     }
                     break;
                 case R.id.btSubtract:
                     inputChar = '-';
-                    if(!(_inputValue.equals(""))) {
+                    if(!(_inputValue.equals("") || isLastOpeIsPercent())) {
                         addList(tvFormula, _inputValue, inputChar);
                     }
                     break;
                 case R.id.btMultiply:
                     inputChar = '×';
-                    if(!(_inputValue.equals(""))) {
+
+                    if(!(_inputValue.equals("")) || isLastOpeIsPercent()) {
                         addList(tvFormula, _inputValue, inputChar);
                     }
                     break;
                 case R.id.btDivide:
                     inputChar = '÷';
-                    if(!(_inputValue.equals(""))) {
+                    if(!(_inputValue.equals("") || isLastOpeIsPercent())) {
                         addList(tvFormula, _inputValue, inputChar);
                     }
                     break;
                 case R.id.btEqual:
                     inputChar = '=';
-                    if(!(_inputValue.equals(""))) {
+                    if(!(_inputValue.equals("") || isLastOpeIsPercent())) {
                         addList(tvFormula, _inputValue, inputChar);
                     }
                     String result = calculate().toString();
@@ -245,37 +253,70 @@ public class CalcActivity extends AppCompatActivity {
                 case R.id.btPlusMinus:
                     break;
                 case R.id.btPercent:
+                    inputChar = '%';
+                    if(!(_inputValue.equals(""))) {
+                        addList(tvFormula, _inputValue, inputChar);
+                    }
                     break;
                 case R.id.btMemo:
                     EditText etMemo = findViewById(R.id.etMemo);
                     String memo = etMemo.getText().toString();
                     String formula = tvFormula.getText().toString();
 
-                    Map<String, Object> memoAndNum = new HashMap<>();
-                    memoAndNum.put("memo", memo + "\n" + formula);
-                    _memoList.add(memoAndNum);
+                    // DBに値を保存
+                    _dbAdapter.open();
+                    String memoId =String.valueOf(_dbAdapter.saveMemo(memo, formula));
+                    _dbAdapter.close();
 
+                    // メモ一覧にメモを追加
+                    Map<String, String> memoItem = new HashMap<>();
+                    memoItem.put("id", memoId);
+                    memoItem.put("memo", memo);
+                    memoItem.put("formula", formula);
+                    _memoList.add(memoItem);
                     RecyclerListAdapter adapter = new RecyclerListAdapter(_memoList);
-                    rvMemo.setAdapter(adapter);
+                    _rvMemo.setAdapter(adapter);
+
                     break;
             }
         }
 
+        // opeListの末端文字が"%"であるかを確認
+        private boolean isLastOpeIsPercent() {
+            if(0 < _opeList.size()) {
+                return _inputValue.equals("") && _opeList.get(_opeList.size() - 1) == '%';
+            }
+            return false;
+        }
+
+        // 数字リストと文字リストに要素を追加
         private void addList(TextView tvFormula, String inputValue, char ope) {
             addTextView(tvFormula, ope);
-            _numList.add(new BigDecimal(inputValue));
+            if(!isLastOpeIsPercent()) _numList.add(new BigDecimal(inputValue));
             _opeList.add(ope);
             _inputValue = "";
         }
 
+        // TextViewに文字列を追加
         private void addTextView(TextView textView, char addStr) {
             String str = textView.getText().toString() + addStr;
             textView.setText(str);
         }
 
+        // 計算を実行
         private BigDecimal calculate() {
             int i = 0;
 
+            // %を少数に変換
+            while(i < _opeList.size()) {
+                if(_opeList.get(i) == '%') {
+                    _numList.set(i, _numList.get(i).divide(new BigDecimal("100"), 20, BigDecimal.ROUND_HALF_UP));
+                    _opeList.remove(i);
+                }
+                i++;
+            }
+
+            i = 0;
             while(i < _opeList.size()) {
                 if(_opeList.get(i) == '×' | _opeList.get(i) == '÷') {
                     BigDecimal resultMultiDiv;
@@ -290,7 +331,7 @@ public class CalcActivity extends AppCompatActivity {
                     _opeList.remove(i);
                     i--;
                 }
-                else if(_opeList.get(i) == 'ー') {
+                else if(_opeList.get(i) == '-') {
                     _opeList.set(i, '＋');
                     _numList.set(i+1, _numList.get(i+1).negate());
                 }
@@ -302,7 +343,7 @@ public class CalcActivity extends AppCompatActivity {
                 result = result.add(j);
             }
 
-            return result;
+            return result.stripTrailingZeros();
         }
     }
 }
